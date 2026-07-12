@@ -1,7 +1,8 @@
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { 
   FileText, Flame, Sparkles, Trophy, Cpu, ShieldCheck, 
-  HelpCircle, ArrowRight, Star, Heart, CheckCircle2 
+  HelpCircle, ArrowRight, Star, Heart, CheckCircle2,
+  Skull, Zap, RefreshCw
 } from "lucide-react";
 import { useState } from "react";
 
@@ -12,6 +13,57 @@ interface LandingViewProps {
 
 export default function LandingView({ onNavigate, onLoadDemo }: LandingViewProps) {
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
+
+  // Buzzword Decimator State
+  const [decimatedWords, setDecimatedWords] = useState<string[]>([]);
+  const [lastQuip, setLastQuip] = useState<string>("");
+
+  const buzzwords = [
+    { term: "Synergy Coordinator", quip: "🎯 'I sat in 4 meetings daily to discuss scheduling another meeting to talk about work.'" },
+    { term: "Self-Starter", quip: "🏃‍♂️ 'I don't wait for instructions because I don't read standard documentation anyway.'" },
+    { term: "Team Player", quip: "🤝 'I read the group chat, post reaction emojis, and successfully avoid merging any code.'" },
+    { term: "Result-Oriented", quip: "📈 'I actively work for exactly 15 minutes when my manager asks for an update.'" },
+    { term: "Out of the Box Thinker", quip: "📦 'I refuse to follow standard, working procedures because they require reading.'" },
+    { term: "Detail-Oriented Expert", quip: "🔍 'I find minor styling typos in others' PRs but regularly break production db queries.'" },
+  ];
+
+  const handleDecimate = (term: string, quip: string) => {
+    if (!decimatedWords.includes(term)) {
+      setDecimatedWords(prev => [...prev, term]);
+      setLastQuip(quip);
+    }
+  };
+
+  const resetBuzzwords = () => {
+    setDecimatedWords([]);
+    setLastQuip("");
+  };
+
+  // Sarcastic Translator State
+  const [selectedTranslateId, setSelectedTranslateId] = useState<number>(0);
+
+  const translations = [
+    {
+      realReason: "I am lazy and just want to get paid",
+      corporateSpeak: "Seeking a high-leverage opportunity to maximize operational efficiencies through delegation and cross-functional coordination.",
+      recruiterReality: "Seeking to do the absolute minimum required to avoid being fired while browsing Reddit on my second screen."
+    },
+    {
+      realReason: "I got fired for arguing with my previous boss",
+      corporateSpeak: "Seeking a dynamic, progressive culture that champions constructive intellectual alignment and independent critical feedback.",
+      recruiterReality: "I have a massive ego and spent 3 hours in Slack arguing about why we should rewrite a stable system in a new framework."
+    },
+    {
+      realReason: "I have no idea what I'm doing in React",
+      corporateSpeak: "A highly adaptive framework generalist capable of immediate, self-guided upskilling in high-velocity tech stacks.",
+      recruiterReality: "I copy-paste from StackOverflow and spend 90% of my day fighting CSS alignment issues while praying it builds."
+    },
+    {
+      realReason: "I just need to pay my rent",
+      corporateSpeak: "Deeply aligned with your company's core values, growth flywheel, and global mission to revolutionize modern workflow metrics.",
+      recruiterReality: "I don't know or care what your enterprise SaaS B2B tool does, but my landlord is breathing down my neck."
+    }
+  ];
 
   // Runaway "I'm Nervous" button state
   const [nervousOffset, setNervousOffset] = useState({ x: 0, y: 0 });
@@ -219,20 +271,159 @@ export default function LandingView({ onNavigate, onLoadDemo }: LandingViewProps
         >
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
             <div className="p-4 border-r border-slate-200 dark:border-white/10 last:border-0">
-              <div className="text-3xl font-extrabold text-purple-600 dark:text-purple-400">100k+</div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">Resumes Burned</div>
+              <div className="text-3xl font-extrabold text-purple-600 dark:text-purple-400">100%</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">Emotional Damage</div>
             </div>
             <div className="p-4 sm:border-r border-slate-200 dark:border-white/10 last:border-0">
               <div className="text-3xl font-extrabold text-pink-600 dark:text-pink-400">85%</div>
               <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">Interviews Increased</div>
             </div>
             <div className="p-4 border-r border-slate-200 dark:border-white/10 last:border-0">
-              <div className="text-3xl font-extrabold text-blue-600 dark:text-blue-400">4.9/5</div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">Sass Rating</div>
+              <div className="text-3xl font-extrabold text-blue-600 dark:text-blue-400">0g</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">Sugarcoating</div>
             </div>
             <div className="p-4 last:border-0">
               <div className="text-3xl font-extrabold text-orange-500">5</div>
               <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">Roast Styles</div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* INTERACTIVE GAMES CONTAINER */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+          className="mt-16 grid lg:grid-cols-2 gap-8 max-w-5xl mx-auto text-left relative z-20"
+        >
+          {/* GAME 1: BUZZWORD DECIMATOR */}
+          <div className="bg-white/40 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-6 md:p-8 rounded-3xl shadow-xl backdrop-blur-md flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 bg-orange-500/10 rounded-xl text-orange-500">
+                  <Flame className="w-5 h-5 fill-orange-500" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Resume Buzzword Decimator</h3>
+              </div>
+              <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mb-6 leading-relaxed">
+                Click on typical fluff words below to vaporize them from existence and read their translation into plain human speak.
+              </p>
+
+              {/* Buzzwords grid */}
+              <div className="flex flex-wrap gap-2.5 mb-6">
+                {buzzwords.map((bw) => {
+                  const isDecimated = decimatedWords.includes(bw.term);
+                  return (
+                    <button
+                      key={bw.term}
+                      onClick={() => handleDecimate(bw.term, bw.quip)}
+                      disabled={isDecimated}
+                      className={`relative px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 select-none overflow-hidden ${
+                        isDecimated
+                          ? "bg-red-500/10 border border-red-500/20 text-red-500/50 line-through cursor-not-allowed scale-95"
+                          : "bg-slate-100/80 dark:bg-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 border border-transparent dark:text-slate-300 cursor-pointer hover:scale-105 active:scale-95"
+                      }`}
+                    >
+                      {isDecimated ? <Skull className="w-3.5 h-3.5 animate-pulse" /> : <Zap className="w-3.5 h-3.5 text-yellow-500" />}
+                      {bw.term}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Quip Display Area */}
+            <div className="mt-4 p-4 rounded-2xl bg-slate-50 dark:bg-[#090514] border border-slate-100 dark:border-white/5 min-h-[100px] flex flex-col justify-center relative overflow-hidden">
+              <AnimatePresence mode="wait">
+                {lastQuip ? (
+                  <motion.div
+                    key={lastQuip}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <p className="text-sm font-semibold text-rose-600 dark:text-rose-400 leading-relaxed font-mono">
+                      {lastQuip}
+                    </p>
+                  </motion.div>
+                ) : (
+                  <motion.p
+                    key="placeholder"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-xs text-slate-400 dark:text-slate-500 italic text-center"
+                  >
+                    💡 Click a buzzword above to trigger high-intensity heat.
+                  </motion.p>
+                )}
+              </AnimatePresence>
+
+              {decimatedWords.length > 0 && (
+                <button
+                  onClick={resetBuzzwords}
+                  className="absolute bottom-2 right-2 text-[10px] font-bold text-slate-400 hover:text-purple-500 transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <RefreshCw className="w-3 h-3 animate-spin-once" />
+                  Restore Clichés
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* GAME 2: CORPORATE TRANSLATOR */}
+          <div className="bg-white/40 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-6 md:p-8 rounded-3xl shadow-xl backdrop-blur-md flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 bg-purple-500/10 rounded-xl text-purple-500">
+                  <FileText className="w-5 h-5 text-purple-500" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Corporate Speak Translator</h3>
+              </div>
+              <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mb-6 leading-relaxed">
+                Choose what you actually meant to write on your resume to see the corporate translation vs. what recruiters really see.
+              </p>
+
+              {/* Translation buttons */}
+              <div className="grid grid-cols-2 gap-2 mb-6">
+                {translations.map((t, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedTranslateId(idx)}
+                    className={`p-2.5 rounded-xl text-left text-xs font-semibold transition-all border leading-tight flex flex-col justify-between ${
+                      selectedTranslateId === idx
+                        ? "border-purple-500 bg-purple-500/5 text-purple-600 dark:text-purple-400 shadow-sm"
+                        : "border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-650 dark:text-slate-350 cursor-pointer"
+                    }`}
+                  >
+                    <span className="text-[10px] uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-1 block">Reason #{idx+1}</span>
+                    <span className="line-clamp-2 italic">"{t.realReason}"</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Translation Output Cards */}
+            <div className="space-y-3">
+              <div className="p-3 bg-emerald-500/5 dark:bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
+                <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                  Your Polished Resume Speak
+                </div>
+                <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium">
+                  "{translations[selectedTranslateId].corporateSpeak}"
+                </p>
+              </div>
+
+              <div className="p-3 bg-rose-500/5 dark:bg-rose-500/5 border border-rose-500/20 rounded-xl">
+                <div className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                  <Skull className="w-3.5 h-3.5 text-rose-500" />
+                  What the Recruiter Hears
+                </div>
+                <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium italic">
+                  "{translations[selectedTranslateId].recruiterReality}"
+                </p>
+              </div>
             </div>
           </div>
         </motion.div>
