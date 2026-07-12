@@ -1,27 +1,10 @@
-import express from "express";
-import path from "path";
-import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
-import dotenv from "dotenv";
 
-dotenv.config();
-
-const app = express();
-const PORT = 3000;
-
-// Increase payload limit for larger resume uploads / text sizes
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
-// Initialize Gemini client lazily
 let aiClient: GoogleGenAI | null = null;
 
 function getGeminiClient() {
   if (!aiClient) {
     const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      console.warn("⚠️ GEMINI_API_KEY environment variable is not defined!");
-    }
     aiClient = new GoogleGenAI({
       apiKey: apiKey || "dummy_key_to_prevent_crash",
       httpOptions: {
@@ -33,14 +16,6 @@ function getGeminiClient() {
   }
   return aiClient;
 }
-
-// API Route: Check Health & API key status
-app.get("/api/health", (req, res) => {
-  res.json({
-    status: "ok",
-    hasApiKey: !!process.env.GEMINI_API_KEY,
-  });
-});
 
 function mapGeminiError(err: any): { error: string; details: string } {
   const message = String(err?.message || err || "").toLowerCase();
@@ -64,153 +39,31 @@ function mapGeminiError(err: any): { error: string; details: string } {
   };
 }
 
-// API Route: Parse Resume text into structured fields
-app.post("/api/parse", async (req, res) => {
-  const { text } = req.body;
-  if (!text || typeof text !== "string") {
-    return res.status(400).json({ error: "Missing resume text for parsing." });
-  }
-
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    console.error("❌ Gemini API Key is missing. Please check your system environment/secrets.");
-    const isProd = process.env.NODE_ENV === "production";
-    const displayError = isProd 
-      ? "AI analysis is temporarily unavailable. Please try again later." 
-      : "Invalid API key.";
-    return res.status(500).json({
-      error: `Parsing Error: ${displayError}`,
-    });
-  }
+export async function POST(request: Request) {
+  console.log("Incoming request: POST /api/roast");
 
   try {
-    console.log("Incoming request: POST /api/parse");
-    console.log("\n--- PARSING FLOW STARTED ---");
-    console.log("Resume uploaded ✅");
-    console.log(`Characters extracted: ${text.length}`);
-    console.log("Gemini request: Parsing resume with gemini-3.5-flash");
+    const body = await request.json().catch(() => ({}));
+    const { text, mode, parsedResume } = body;
 
-    const ai = getGeminiClient();
-    const prompt = `
-You are a precise resume parser. Extract information from the following raw resume text and format it into the requested JSON schema.
-If certain fields like certifications or projects are not present, return empty arrays. Be as comprehensive and accurate as possible.
-
-Resume Text:
-${text}
-`;
-
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            name: { type: Type.STRING, description: "Full name of the candidate" },
-            email: { type: Type.STRING, description: "Email address" },
-            phone: { type: Type.STRING, description: "Phone number" },
-            skills: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of technical and soft skills" },
-            education: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  school: { type: Type.STRING, description: "School or University name" },
-                  degree: { type: Type.STRING, description: "Degree, Major or Certificate name" },
-                  year: { type: Type.STRING, description: "Graduation year or date range (e.g., 2018 - 2022)" }
-                },
-                required: ["school", "degree"]
-              }
-            },
-            experience: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  company: { type: Type.STRING, description: "Company name" },
-                  role: { type: Type.STRING, description: "Job title / role" },
-                  duration: { type: Type.STRING, description: "Employment duration (e.g., 2021 - Present)" },
-                  description: { type: Type.STRING, description: "Bullet points or description of duties and accomplishments" }
-                },
-                required: ["company", "role"]
-              }
-            },
-            projects: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  title: { type: Type.STRING, description: "Project title" },
-                  description: { type: Type.STRING, description: "Brief description of the project" },
-                  technologies: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Technologies or tools used" }
-                },
-                required: ["title"]
-              }
-            },
-            certifications: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Certifications obtained" }
-          },
-          required: ["name", "email", "skills", "education", "experience"]
-        }
-      }
-    });
-
-    console.log("Gemini response received");
-
-    if (!response.text) {
-      throw new Error("No text returned from Gemini parser.");
+    if (!text || typeof text !== "string") {
+      console.error("❌ Missing resume text for roasting");
+      return Response.json({ error: "Missing resume text for roasting." }, { status: 400 });
     }
 
-    const parsedJson = JSON.parse(response.text.trim());
-    console.log("Resume parsed");
-    console.log("Returned JSON:", JSON.stringify(parsedJson));
-    console.log("--- PARSING FLOW COMPLETED ---\n");
-    return res.json(parsedJson);
-  } catch (err: any) {
-    console.error("❌ Resume parsing failed with error:", err);
-    const isProd = process.env.NODE_ENV === "production";
-    const mapped = mapGeminiError(err);
-    const displayError = isProd 
-      ? "AI analysis is temporarily unavailable. Please try again later." 
-      : mapped.error;
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.error("❌ Gemini API Key is missing for roasting. Please check your system environment/secrets.");
+      const isProd = process.env.NODE_ENV === "production";
+      const displayError = isProd 
+        ? "AI analysis is temporarily unavailable. Please try again later." 
+        : "Invalid API key.";
+      return Response.json({
+        error: `AI Analysis Error: ${displayError}`,
+      }, { status: 500 });
+    }
 
-    return res.status(500).json({
-      error: `Parsing Error: ${displayError}`,
-      details: isProd ? undefined : mapped.details,
-    });
-  }
-});
-
-// API Route: Roast Resume text with selected roast mode
-app.post("/api/roast", async (req, res) => {
-  const { text, mode, parsedResume } = req.body;
-  if (!text || typeof text !== "string") {
-    return res.status(400).json({ error: "Missing resume text for roasting." });
-  }
-
-  const roastMode = mode || "savage";
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    console.error("❌ Gemini API Key is missing for roasting. Please check your system environment/secrets.");
-    const isProd = process.env.NODE_ENV === "production";
-    const displayError = isProd 
-      ? "AI analysis is temporarily unavailable. Please try again later." 
-      : "Invalid API key.";
-    return res.status(500).json({
-      error: `AI Analysis Error: ${displayError}`,
-    });
-  }
-
-  try {
-    console.log("Incoming request: POST /api/roast");
-    console.log("\n--- ROAST FLOW STARTED ---");
-    console.log("Resume uploaded ✅");
-    console.log("Resume parsed ✅");
-    console.log(`Characters extracted: ${text.length}`);
-    console.log(`Gemini request: Roasting resume with gemini-3.5-flash under mode ${roastMode}`);
-
-    const ai = getGeminiClient();
-
+    const roastMode = mode || "savage";
     let modeInstruction = "";
     if (roastMode === "friendly") {
       modeInstruction = "Use friendly, lighthearted humor. Like an older sibling teasing them gently but wanting them to succeed. A mix of 'you got this' and 'why did you list Microsoft Word as a skill?'.";
@@ -274,6 +127,9 @@ Please analyze the resume and return a JSON object adhering exactly to the follo
 }
 `;
 
+    const ai = getGeminiClient();
+
+    console.log(`Gemini request: Roasting resume with gemini-3.5-flash under mode ${roastMode}`);
     const response = await ai.models.generateContent({
       model: "gemini-3.5-flash",
       contents: prompt,
@@ -297,7 +153,7 @@ Please analyze the resume and return a JSON object adhering exactly to the follo
                 properties: {
                   section: { type: Type.STRING },
                   issue: { type: Type.STRING },
-                  severity: { type: Type.STRING, enum: ["low", "medium", "high", "critical"] },
+                  severity: { type: Type.STRING },
                   funnyComment: { type: Type.STRING },
                   fix: { type: Type.STRING }
                 },
@@ -334,14 +190,12 @@ Please analyze the resume and return a JSON object adhering exactly to the follo
     console.log("Gemini response received");
 
     if (!response.text) {
-      throw new Error("No text returned from Gemini roaster.");
+      throw new Error("No text returned from Gemini.");
     }
 
     const roastedJson = JSON.parse(response.text.trim());
-    console.log("Resume parsed");
     console.log("Returned JSON:", JSON.stringify(roastedJson));
-    console.log("--- ROAST FLOW COMPLETED ---\n");
-    return res.json(roastedJson);
+    return Response.json(roastedJson);
   } catch (err: any) {
     console.error("❌ Resume roasting failed with error:", err);
     const isProd = process.env.NODE_ENV === "production";
@@ -350,40 +204,9 @@ Please analyze the resume and return a JSON object adhering exactly to the follo
       ? "AI analysis is temporarily unavailable. Please try again later." 
       : mapped.error;
 
-    return res.status(500).json({
+    return Response.json({
       error: `AI Analysis Error: ${displayError}`,
       details: isProd ? undefined : mapped.details,
-    });
+    }, { status: 500 });
   }
-});
-
-// Fallback API Route: ensure no HTML is returned for missing api endpoints
-app.all("/api/*", (req, res) => {
-  res.status(404).json({
-    success: false,
-    error: `Route ${req.method} ${req.url} not found.`
-  });
-});
-
-// Vite & Static Asset Handling
-async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-  }
-
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`🚀 Resume Roaster AI Server running on http://0.0.0.0:${PORT}`);
-  });
 }
-
-startServer();

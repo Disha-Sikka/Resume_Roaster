@@ -154,13 +154,20 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: resumeText }),
       });
-      const data = await res.json();
-      if (res.ok) {
-        setParsedData(data);
-        setStep("review");
-      } else {
-        throw new Error(data.error || "Failed to parse structured resume data.");
+      
+      if (!res.ok) {
+        const text = await res.text();
+        let errMsg = text;
+        try {
+          const parsed = JSON.parse(text);
+          errMsg = parsed.error || text;
+        } catch {}
+        throw new Error(errMsg);
       }
+      
+      const data = await res.json();
+      setParsedData(data);
+      setStep("review");
     } catch (err: any) {
       // Fallback: Create a structured object from basic scanning or generic fields
       console.warn("Structured parsing failed, using simple fallback", err);
@@ -226,11 +233,20 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
         }),
       });
       
+      if (!response.ok) {
+        const text = await response.text();
+        let errMsg = text;
+        try {
+          const parsed = JSON.parse(text);
+          errMsg = parsed.error || text;
+        } catch {}
+        throw new Error(errMsg);
+      }
+      
       const data = await response.json();
       clearInterval(interval);
 
-      if (response.ok) {
-        const fileName = file ? file.name : `${parsedData.name}_Resume.txt`;
+      const fileName = file ? file.name : `${parsedData.name}_Resume.txt`;
         
         // --- EASTER EGGS INJECTION ---
         const updatedData = { ...data };
@@ -292,9 +308,6 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
         // --- END OF EASTER EGGS ---
 
         onRoastCompleted(fileName, rawText, parsedData, selectedMode, updatedData);
-      } else {
-        throw new Error(data.error || "Failed to roast resume.");
-      }
     } catch (err: any) {
       clearInterval(interval);
       setError("AI Analysis Error: " + (err.message || "Roasting failed due to server error."));
