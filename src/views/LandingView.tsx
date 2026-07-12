@@ -13,6 +13,24 @@ interface LandingViewProps {
 export default function LandingView({ onNavigate, onLoadDemo }: LandingViewProps) {
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
 
+  // Runaway "I'm Nervous" button state
+  const [nervousOffset, setNervousOffset] = useState({ x: 0, y: 0 });
+  const [hasNervousHovered, setHasNervousHovered] = useState(false);
+
+  const handleNervousHover = () => {
+    if (!hasNervousHovered) {
+      // Calculate random runaway offset (moves away by 80px - 140px in a random quadrant)
+      const angles = [45, 135, 225, 315, 60, 150, 240, 330];
+      const randomAngle = angles[Math.floor(Math.random() * angles.length)] * (Math.PI / 180);
+      const distance = 110;
+      setNervousOffset({
+        x: Math.round(Math.cos(randomAngle) * distance),
+        y: Math.round(Math.sin(randomAngle) * distance)
+      });
+      setHasNervousHovered(true);
+    }
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -98,22 +116,44 @@ export default function LandingView({ onNavigate, onLoadDemo }: LandingViewProps
 
   return (
     <div className="relative overflow-hidden">
+      {/* Immersive Desk Assets & Background Elements */}
       {/* Background Orbs */}
       <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute top-1/3 right-1/4 w-[400px] h-[400px] bg-pink-500/10 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute bottom-10 left-10 w-[300px] h-[300px] bg-blue-500/10 rounded-full blur-[80px] pointer-events-none" />
 
+      {/* Coffee Stain Overlay */}
+      <div className="absolute top-[28%] left-[4%] md:left-[8%] w-32 h-32 rounded-full border-4 border-amber-800/10 dark:border-amber-500/5 rotate-[24deg] pointer-events-none scale-110 z-0 hidden sm:block">
+        <div className="absolute inset-1.5 rounded-full border-2 border-amber-800/5 dark:border-amber-500/3" />
+        <div className="absolute top-3 left-8 w-16 h-5 bg-amber-800/[0.03] dark:bg-amber-500/[0.01] blur-md rounded-full" />
+      </div>
+
       {/* Hero Section */}
-      <section className="relative px-4 py-20 md:py-32 max-w-7xl mx-auto text-center">
+      <section className="relative px-4 py-20 md:py-32 max-w-7xl mx-auto text-center z-10">
+        
+        {/* Floating Sticky Notes - Left Side */}
+        <div className="hidden lg:block absolute left-4 top-[24%] rotate-[-6deg] bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border border-amber-200/50 p-4 rounded-sm shadow-md max-w-[170px] text-left text-xs font-mono select-none">
+          <div className="absolute top-[-8px] left-1/2 -translate-x-1/2 w-10 h-3.5 bg-white/40 dark:bg-white/20 backdrop-blur-sm rotate-[1deg] border border-white/5" />
+          <span className="text-red-500 font-bold block mb-1">✍️ REVIEW NOTES:</span>
+          "Delete entire experience section. Pls do not say 'synergy' ever again."
+        </div>
+
+        {/* Floating Sticky Notes - Right Side */}
+        <div className="hidden lg:block absolute right-4 top-[32%] rotate-[8deg] bg-pink-100 dark:bg-pink-950/40 text-pink-900 dark:text-pink-200 border border-pink-200/50 p-4 rounded-sm shadow-md max-w-[175px] text-left text-xs font-mono select-none">
+          <div className="absolute top-[-8px] left-1/2 -translate-x-1/2 w-10 h-3.5 bg-white/40 dark:bg-white/20 backdrop-blur-sm rotate-[-2deg] border border-white/5" />
+          <span className="text-pink-600 dark:text-pink-400 font-bold block mb-1">🚨 CRITICAL FAILURE:</span>
+          "Formatting is so bad our parser requested an emotional support program."
+        </div>
+
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6 }}
           className="flex justify-center mb-6"
         >
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-xs font-semibold tracking-wider text-purple-400 uppercase">
-            <Flame className="w-3.5 h-3.5 text-orange-500 animate-pulse" />
-            AI-Powered Career Correction
+          <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-xs font-bold tracking-wider text-red-500 uppercase">
+            <Flame className="w-3.5 h-3.5 text-orange-500 animate-pulse fill-orange-500" />
+            No Filters. Just Raw Fire.
           </span>
         </motion.div>
 
@@ -121,11 +161,15 @@ export default function LandingView({ onNavigate, onLoadDemo }: LandingViewProps
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight"
+          className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tight text-slate-900 dark:text-white leading-none relative"
         >
-          Roast Your Resume. <br className="hidden sm:inline" />
-          <span className="bg-gradient-to-r from-purple-500 via-pink-500 to-orange-400 bg-clip-text text-transparent">
-            Optimize Your Future.
+          Your Resume Called.<br className="hidden sm:inline" />
+          <span className="relative inline-block mt-2">
+            <span className="bg-gradient-to-r from-red-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+              It Wants Therapy.
+            </span>
+            {/* Scribble underline */}
+            <span className="absolute bottom-[-6px] left-0 right-0 h-[4px] bg-rose-500 rounded-full opacity-60 pointer-events-none blur-[0.5px]" />
           </span>
         </motion.h1>
 
@@ -133,32 +177,38 @@ export default function LandingView({ onNavigate, onLoadDemo }: LandingViewProps
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="mt-6 text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto font-sans leading-relaxed"
+          className="mt-8 text-lg sm:text-2xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-sans leading-relaxed"
         >
-          Upload your resume and let our brilliant AI Roast Engine tear it apart with hilarious, cutting feedback—while secretly providing a rigorous ATS audit and expert suggestions.
+          Upload your resume. We'll roast it harder than HR ever could, then actually help you improve it.
         </motion.p>
 
+        {/* Dynamic CTAs */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="mt-10 flex flex-col sm:flex-row gap-4 justify-center items-center"
+          className="mt-12 flex flex-col sm:flex-row gap-5 justify-center items-center relative min-h-[80px]"
         >
           <button
             onClick={() => onNavigate("roaster")}
-            className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold text-lg shadow-lg hover:shadow-purple-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+            className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4.5 rounded-2xl bg-gradient-to-r from-red-600 via-purple-600 to-pink-600 text-white font-extrabold text-lg shadow-xl hover:shadow-red-500/25 hover:scale-[1.03] active:scale-[0.97] transition-all duration-300 cursor-pointer"
           >
-            Upload Your Resume
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            🔥 Roast My Resume
+            <ArrowRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
           </button>
-          <button
+
+          {/* Interactive Runaway Nervous Button */}
+          <motion.button
+            animate={{ x: nervousOffset.x, y: nervousOffset.y }}
+            transition={{ type: "spring", stiffness: 220, damping: 15 }}
+            onMouseEnter={handleNervousHover}
             onClick={onLoadDemo}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 font-semibold text-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4.5 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/10 font-bold text-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors duration-300 cursor-pointer select-none"
           >
-            <Sparkles className="w-5 h-5 text-yellow-500" />
-            Try Live Demo
-          </button>
+            😬 I'm Nervous
+          </motion.button>
         </motion.div>
+
 
         {/* Floating elements showcasing scores */}
         <motion.div

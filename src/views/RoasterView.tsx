@@ -30,6 +30,27 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Funny supporting text selector (stably chosen per view mount)
+  const [subtext] = useState(() => {
+    const subtexts = [
+      "We promise to judge the PDF, not you.",
+      "Maximum file size: 10MB of career decisions.",
+      "Our AI is already cracking its knuckles looking at this."
+    ];
+    return subtexts[Math.floor(Math.random() * subtexts.length)];
+  });
+
+  const funnyErrors = [
+    "This resume refused to cooperate.",
+    "Upload failed. Even our server looked away.",
+    "This PDF is holding onto secrets."
+  ];
+
+  const setFunnyError = (rawErr: string) => {
+    const randomFunny = funnyErrors[Math.floor(Math.random() * funnyErrors.length)];
+    setError(`${randomFunny} (${rawErr})`);
+  };
+
   const modesInfo = [
     {
       id: "friendly" as RoastMode,
@@ -82,7 +103,7 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
   const validateAndParseFile = async (selectedFile: File) => {
     setError(null);
     if (selectedFile.size > 10 * 1024 * 1024) {
-      setError("File exceeds maximum size of 10MB.");
+      setFunnyError("File exceeds maximum size of 10MB.");
       return;
     }
 
@@ -96,7 +117,7 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
       await parseResumeMetadata(text);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "An error occurred while parsing the file.");
+      setFunnyError(err.message || "An error occurred while parsing the file.");
       setIsParsing(false);
     }
   };
@@ -119,7 +140,7 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
 
   const handlePasteSubmit = async () => {
     if (!pasteText.trim()) {
-      setError("Please paste some resume text first.");
+      setFunnyError("Please paste some resume text first.");
       return;
     }
     setError(null);
@@ -128,7 +149,7 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
       setRawText(pasteText);
       await parseResumeMetadata(pasteText);
     } catch (err: any) {
-      setError(err.message || "An error occurred.");
+      setFunnyError(err.message || "An error occurred.");
       setIsParsing(false);
     }
   };
@@ -182,12 +203,16 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
     setError(null);
     
     const statuses = [
+      "Looking for buzzwords...",
+      "Counting unnecessary adjectives...",
+      "Checking if Comic Sans was involved...",
+      "Searching for actual achievements...",
+      "Finding 'Hardworking'...",
+      "Scanning for copy-pasted objectives...",
+      "Calling HR...",
+      "Calculating emotional damage...",
       "Heating up the roaster coals...",
-      "Consulting with passive-aggressive recruiters...",
-      "Analyzing spelling crimes...",
-      "Mocking buzzword-to-impact ratios...",
-      "Applying critical temperature to formatting layers...",
-      "Formatting humorous verdicts..."
+      "Consulting with passive-aggressive recruiters..."
     ];
 
     let currentStatusIdx = 0;
@@ -214,13 +239,73 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
 
       if (response.ok) {
         const fileName = file ? file.name : `${parsedData.name}_Resume.txt`;
-        onRoastCompleted(fileName, rawText, parsedData, selectedMode, data);
+        
+        // --- EASTER EGGS INJECTION ---
+        const updatedData = { ...data };
+        if (updatedData.mistakes) {
+          const lowerName = fileName.toLowerCase();
+          
+          // Filename checks
+          if (lowerName === "resume.pdf" || lowerName === "resume.docx" || lowerName === "cv.pdf" || lowerName === "my_resume.pdf" || lowerName === "resume.txt") {
+            updatedData.mistakes = [
+              {
+                section: "Header",
+                severity: "critical",
+                issue: "The Ultimate Generic Filename",
+                funnyComment: "Naming your file 'Resume.pdf' is the ultimate power move to guarantee it gets instantly deleted or lost in the HR downloads folder vortex.",
+                fix: "Rename the file to 'Firstname_Lastname_Resume.pdf' before HR deletes it out of sheer confusion."
+              },
+              ...updatedData.mistakes
+            ];
+            updatedData.roast = `⚠️ EASTER EGG UNLOCKED: GENERIC FILENAME DETECTED!\n\n"Ah, 'Resume.pdf'. How daring. How unique. It really showcases your absolute refusal to stand out."\n\n${updatedData.roast}`;
+          } else if (lowerName.includes("awesome") || lowerName.includes("rockstar") || lowerName.includes("ninja") || lowerName.includes("legend") || lowerName.includes("best")) {
+            updatedData.mistakes = [
+              {
+                section: "Header",
+                severity: "medium",
+                issue: "Excessive File Confidence",
+                funnyComment: `Naming your file '${fileName}' displays dangerous levels of hubris. Let's see if the experience actually backs up this 'rockstar' status (spoiler: it doesn't).`,
+                fix: "Humble the filename slightly to prevent recruiter eye-rolls before they even open it."
+              },
+              ...updatedData.mistakes
+            ];
+            updatedData.roast = `⚠️ EASTER EGG UNLOCKED: OVERCONFIDENT FILENAME DETECTED!\n\n"A 'rockstar' or 'awesome' filename has arrived on the review desk. Let the destruction begin."\n\n${updatedData.roast}`;
+          }
+
+          // ATS Score triggers
+          if (updatedData.atsScore < 30) {
+            updatedData.mistakes = [
+              {
+                section: "ATS Compliancy",
+                severity: "critical",
+                issue: "The Commodore 64 Paradox",
+                funnyComment: `Your ATS score is so low (${updatedData.atsScore}%) that an electronic toaster has better digital compliance. Our robot parser almost self-destructed reading this.`,
+                fix: "Clean up your columns and use machine-readable vertical spacing."
+              },
+              ...updatedData.mistakes
+            ];
+          } else if (updatedData.atsScore > 90) {
+            updatedData.mistakes = [
+              {
+                section: "ATS Compliancy",
+                severity: "high",
+                issue: "Certified Robot Simulator",
+                funnyComment: `Your ATS score is suspiciously high (${updatedData.atsScore}%). You have successfully optimized your resume to please the machine gods. Unfortunately, human eyes will still glaze over in 3 seconds.`,
+                fix: "Inject minor human energy so it doesn't look like an automated machine export."
+              },
+              ...updatedData.mistakes
+            ];
+          }
+        }
+        // --- END OF EASTER EGGS ---
+
+        onRoastCompleted(fileName, rawText, parsedData, selectedMode, updatedData);
       } else {
         throw new Error(data.error || "Failed to roast resume.");
       }
     } catch (err: any) {
       clearInterval(interval);
-      setError(err.message || "Roasting failed due to server error.");
+      setFunnyError(err.message || "Roasting failed due to server error.");
       setStep("review");
     }
   };
@@ -307,10 +392,10 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
                 onDragLeave={handleDrag}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-300 ${
+                className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-300 relative overflow-hidden ${
                   dragActive 
-                    ? "border-purple-500 bg-purple-500/10 dark:bg-purple-500/10 shadow-lg shadow-purple-500/10" 
-                    : "border-slate-300 dark:border-white/10 hover:border-purple-500/50 hover:bg-slate-50 dark:hover:bg-white/5"
+                    ? "border-red-500 bg-red-500/10 shadow-lg shadow-red-500/10" 
+                    : "border-slate-300 dark:border-white/10 hover:border-red-500/50 hover:bg-slate-50 dark:hover:bg-white/5"
                 } ${isParsing ? "pointer-events-none opacity-50" : ""}`}
               >
                 <input
@@ -324,7 +409,7 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
                 {isParsing ? (
                   <div className="py-6 flex flex-col items-center">
                     <RefreshCw className="w-12 h-12 text-purple-500 animate-spin" />
-                    <h3 className="mt-4 font-bold text-slate-800 dark:text-slate-200">Processing Document...</h3>
+                    <h3 className="mt-4 font-bold text-slate-800 dark:text-slate-200">Deconstructing career decisions...</h3>
                     <p className="text-slate-500 text-xs mt-1">{progress}% parsed</p>
                     {/* Progress Bar */}
                     <div className="w-full max-w-xs bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full mt-4 overflow-hidden">
@@ -332,16 +417,23 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
                     </div>
                   </div>
                 ) : (
-                  <div className="py-6 flex flex-col items-center">
-                    <div className="p-4 rounded-full bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform">
-                      <FileText className="w-10 h-10" />
+                  <motion.div 
+                    whileHover={{ rotate: [0, -1, 1, -1, 1, 0] }}
+                    transition={{ duration: 0.3 }}
+                    className="py-6 flex flex-col items-center select-none"
+                  >
+                    <div className={`p-4 rounded-full transition-all ${dragActive ? 'bg-red-100 text-red-600' : 'bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400'}`}>
+                      <FileText className={`w-10 h-10 ${dragActive ? 'animate-bounce' : ''}`} />
                     </div>
-                    <h3 className="mt-4 font-bold text-slate-800 dark:text-white text-lg">
-                      Drag & drop your resume file here
+                    
+                    <h3 className="mt-4 font-black text-slate-800 dark:text-white text-xl sm:text-2xl tracking-tight">
+                      {dragActive ? "Careful... We're about to read this." : "Drop the crime scene here."}
                     </h3>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                      or click to browse from device folder
+                    
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 font-medium italic">
+                      {dragActive ? "Drop to ignite." : subtext}
                     </p>
+                    
                     <div className="mt-6 inline-flex gap-4 text-xs font-semibold text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 px-4 py-1.5 rounded-full bg-slate-50 dark:bg-slate-900">
                       <span>PDF</span>
                       <span className="text-slate-300 dark:text-slate-700">|</span>
@@ -349,9 +441,9 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
                       <span className="text-slate-300 dark:text-slate-700">|</span>
                       <span>TXT</span>
                       <span className="text-slate-300 dark:text-slate-700">|</span>
-                      <span>Max 10MB</span>
+                      <span>Max 10MB of regrets</span>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
               </div>
             ) : (
@@ -405,8 +497,8 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
                   <h2 className="font-bold text-slate-900 dark:text-white text-lg">
                     {file ? file.name : "Pasted Resume text"}
                   </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Structure extracted successfully. Review details below before applying heat.
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">
+                    🎉 Successfully imported your questionable formatting. Review details below before applying heat.
                   </p>
                 </div>
               </div>

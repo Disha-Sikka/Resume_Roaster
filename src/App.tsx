@@ -254,7 +254,6 @@ function AppContent() {
             <button onClick={() => setActiveView("landing")} className={`hover:text-purple-600 dark:hover:text-purple-400 transition-colors cursor-pointer ${activeView === "landing" ? "text-purple-600 dark:text-purple-400 font-bold" : ""}`}>Home</button>
             <button onClick={() => setActiveView("roaster")} className={`hover:text-purple-600 dark:hover:text-purple-400 transition-colors cursor-pointer ${activeView === "roaster" ? "text-purple-600 dark:hover:text-purple-400 font-bold" : ""}`}>Roast Me</button>
             <button onClick={() => setActiveView("history")} className={`hover:text-purple-600 dark:hover:text-purple-400 transition-colors cursor-pointer ${activeView === "history" ? "text-purple-600 dark:hover:text-purple-400 font-bold" : ""}`}>History</button>
-            <button onClick={() => setActiveView("pricing")} className={`hover:text-purple-600 dark:hover:text-purple-400 transition-colors cursor-pointer ${activeView === "pricing" ? "text-purple-600 dark:hover:text-purple-400 font-bold" : ""}`}>Pricing</button>
             <button onClick={() => setActiveView("about")} className={`hover:text-purple-600 dark:hover:text-purple-400 transition-colors cursor-pointer ${activeView === "about" ? "text-purple-600 dark:hover:text-purple-400 font-bold" : ""}`}>About</button>
             <button onClick={() => setActiveView("contact")} className={`hover:text-purple-600 dark:hover:text-purple-400 transition-colors cursor-pointer ${activeView === "contact" ? "text-purple-600 dark:hover:text-purple-400 font-bold" : ""}`}>Contact</button>
           </nav>
@@ -324,7 +323,6 @@ function AppContent() {
                 <button onClick={() => { setActiveView("landing"); setMobileMenuOpen(false); }} className="text-left py-1">Home</button>
                 <button onClick={() => { setActiveView("roaster"); setMobileMenuOpen(false); }} className="text-left py-1">Roast Me</button>
                 <button onClick={() => { setActiveView("history"); setMobileMenuOpen(false); }} className="text-left py-1">History</button>
-                <button onClick={() => { setActiveView("pricing"); setMobileMenuOpen(false); }} className="text-left py-1">Pricing</button>
                 <button onClick={() => { setActiveView("about"); setMobileMenuOpen(false); }} className="text-left py-1">About</button>
                 <button onClick={() => { setActiveView("contact"); setMobileMenuOpen(false); }} className="text-left py-1">Contact</button>
               </div>
@@ -342,12 +340,12 @@ function AppContent() {
       <footer className="bg-white/40 dark:bg-black/20 border-t border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400 text-xs py-10 backdrop-blur-md relative z-10">
         <div className="max-w-7xl mx-auto px-4 grid sm:grid-cols-2 md:grid-cols-4 gap-8">
           <div className="space-y-3">
-            <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white">
-              <Flame className="w-4 h-4 text-purple-600" />
+            <div className="flex items-center gap-1.5 font-extrabold text-slate-900 dark:text-white">
+              <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
               Resume Roaster AI
             </div>
-            <p className="text-[11px] leading-relaxed">
-              Google Gemini powered AI audit platform deconstructing career path templates with savage humor and professional precision.
+            <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400 font-medium">
+              We judge, you improve. Deconstructing corporate formatting crime scenes with savage, HR-proof humor and surgical career upgrades.
             </p>
           </div>
           <div className="space-y-2">
@@ -355,7 +353,6 @@ function AppContent() {
             <ul className="space-y-1.5 flex flex-col">
               <li><button onClick={() => setActiveView("roaster")} className="hover:text-purple-600 text-left">Upload Resume</button></li>
               <li><button onClick={handleLoadDemo} className="hover:text-purple-600 text-left">Try Live Demo</button></li>
-              <li><button onClick={() => setActiveView("pricing")} className="hover:text-purple-600 text-left">Pricing Packages</button></li>
             </ul>
           </div>
           <div className="space-y-2">

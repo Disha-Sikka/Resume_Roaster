@@ -26,14 +26,50 @@ export default function DashboardView({
   const [selectedMistake, setSelectedMistake] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Score categories for custom SVG bar charts
+  // Score categories for custom circular scores with personality-driven labels
   const scoreCategories = [
-    { label: "Overall Score", score: result.overallScore, color: "bg-purple-600 dark:bg-purple-500", text: "text-purple-600" },
-    { label: "ATS Pass Rate", score: result.atsScore, color: "bg-blue-600 dark:bg-blue-500", text: "text-blue-600" },
-    { label: "Grammar / Polish", score: result.grammarScore, color: "bg-emerald-600 dark:bg-emerald-500", text: "text-emerald-600" },
-    { label: "Design / Format", score: result.designScore, color: "bg-pink-600 dark:bg-pink-500", text: "text-pink-600" },
-    { label: "Skills Density", score: result.skillsScore, color: "bg-amber-600 dark:bg-amber-500", text: "text-amber-500" },
-    { label: "Exp. Impact", score: result.experienceScore, color: "bg-rose-600 dark:bg-rose-500", text: "text-rose-600" }
+    { 
+      label: "Overall Career Danger", 
+      score: result.overallScore, 
+      color: "bg-purple-600 dark:bg-purple-500", 
+      text: "text-purple-600",
+      funnyDesc: result.overallScore < 60 ? "Cold water recommended" : "Surprisingly tolerable"
+    },
+    { 
+      label: "ATS Robot Compliancy", 
+      score: result.atsScore, 
+      color: "bg-blue-600 dark:bg-blue-500", 
+      text: "text-blue-600",
+      funnyDesc: result.atsScore < 50 ? "Would crash a Commodore 64" : "Parsed but heavily judged"
+    },
+    { 
+      label: "Spelling Crime Record", 
+      score: result.grammarScore, 
+      color: "bg-emerald-600 dark:bg-emerald-500", 
+      text: "text-emerald-600",
+      funnyDesc: result.grammarScore > 80 ? "Clean (No visual felonies)" : "Active Felon (Typos found)"
+    },
+    { 
+      label: "Buzzword Toxicity Level", 
+      score: result.skillsScore, 
+      color: "bg-amber-600 dark:bg-amber-500", 
+      text: "text-amber-500",
+      funnyDesc: result.skillsScore > 60 ? "Highly radioactive corporate speak" : "Trace amounts of synergy"
+    },
+    { 
+      label: "Desperation Index", 
+      score: result.experienceScore, 
+      color: "bg-rose-600 dark:bg-rose-500", 
+      text: "text-rose-600",
+      funnyDesc: result.experienceScore < 50 ? "Smells like 'team player'" : "Shows survival instinct"
+    },
+    { 
+      label: "Formatting Offense Level", 
+      score: 100 - result.designScore, 
+      color: "bg-pink-600 dark:bg-pink-500", 
+      text: "text-pink-600",
+      funnyDesc: result.designScore < 60 ? "Major visual hazard" : "Slightly standard layout"
+    }
   ];
 
   // Helper to copy content to clipboard
@@ -198,20 +234,22 @@ ${result.finalVerdict}
       <AnimatePresence mode="wait">
         {/* TAB 1: DASHBOARD OVERVIEW */}
         {activeTab === "dashboard" && (
-          <motion.div
-            key="dashboard"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            className="grid lg:grid-cols-3 gap-8"
-          >
+          <div className="grid lg:grid-cols-3 gap-8">
             {/* Left 2 Columns: Scores, Charts and Roasts */}
-            <div className="lg:col-span-2 space-y-8">
+            <motion.div 
+              initial={{ opacity: 0, y: -150 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 100, damping: 14 }}
+              className="lg:col-span-2 space-y-8"
+            >
               {/* Score Circular Rings Row */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
                 {scoreCategories.map((item, idx) => (
-                  <div
+                  <motion.div
                     key={idx}
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 120, damping: 12, delay: idx * 0.05 }}
                     className="p-4 bg-white/40 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl flex flex-col items-center shadow-sm hover:shadow-md transition-all backdrop-blur-sm"
                   >
                     {/* Circle SVG */}
@@ -238,16 +276,19 @@ ${result.finalVerdict}
                           transition={{ duration: 1, delay: 0.2 + idx * 0.1 }}
                         />
                       </svg>
-                      <span className="absolute text-sm font-bold text-slate-800 dark:text-white">
-                        {item.score}
+                      <span className="absolute text-xs sm:text-sm font-bold text-slate-800 dark:text-white font-mono">
+                        {item.score}%
                       </span>
                     </div>
                     <div className="text-center mt-3">
-                      <h4 className="text-xs font-bold text-slate-800 dark:text-slate-300 leading-tight">
+                      <h4 className="text-[11px] font-black text-slate-800 dark:text-slate-300 leading-tight">
                         {item.label}
                       </h4>
+                      <p className="text-[9px] text-purple-600 dark:text-purple-400 font-medium font-mono italic mt-1 leading-tight">
+                        {item.funnyDesc}
+                      </p>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
 
@@ -278,8 +319,24 @@ ${result.finalVerdict}
                 </div>
               </div>
 
-              {/* The AI Roast Text Box */}
-              <div className="p-6 md:p-8 bg-gradient-to-r from-purple-900/10 via-pink-900/5 to-transparent border border-purple-500/30 rounded-2xl relative shadow-md backdrop-blur-md">
+              {/* The AI Roast Text Box styled as a physical yellow legal review pad with standard double-border stamp */}
+              <div className="p-6 md:p-8 bg-amber-50/50 dark:bg-amber-950/15 border-2 border-yellow-200 dark:border-yellow-900/30 rounded-2xl relative shadow-md overflow-hidden min-h-[220px]">
+                {/* SLAMMING RED VERDICT STAMP */}
+                <motion.div
+                  initial={{ scale: 3.5, rotate: -45, opacity: 0 }}
+                  animate={{ scale: 1, rotate: -15, opacity: 0.95 }}
+                  transition={{ 
+                    type: "spring", 
+                    stiffness: 280, 
+                    damping: 14,
+                    delay: 0.6
+                  }}
+                  className="absolute right-6 top-8 md:right-16 md:top-12 z-20 border-4 border-double border-red-500 text-red-500 font-extrabold text-base sm:text-2xl px-4 py-1.5 rounded uppercase tracking-widest bg-yellow-50 dark:bg-slate-900 pointer-events-none select-none font-mono opacity-90 rotate-[-15deg] shadow-md flex flex-col items-center"
+                >
+                  <span className="text-[7px] tracking-normal leading-none mb-0.5">AI REVIEW DESK</span>
+                  <span className="text-xl sm:text-2xl font-black leading-none">COOKED 💀</span>
+                </motion.div>
+
                 <div className="absolute top-4 right-4 animate-bounce">
                   <Flame className="w-6 h-6 text-orange-500 fill-orange-500" />
                 </div>
@@ -287,14 +344,19 @@ ${result.finalVerdict}
                   <Flame className="w-5 h-5 text-orange-500" />
                   The AI Roast Content
                 </h3>
-                <div className="text-slate-700 dark:text-slate-350 text-sm sm:text-base leading-relaxed font-sans whitespace-pre-wrap">
+                <div className="text-slate-800 dark:text-slate-300 text-sm sm:text-base leading-relaxed font-sans whitespace-pre-wrap relative z-10 pr-24 sm:pr-32">
                   {result.roast}
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Right Column: Expert Recommendations & Fast Stats */}
-            <div className="space-y-8">
+            <motion.div 
+              initial={{ opacity: 0, y: -150 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 100, damping: 14, delay: 0.25 }}
+              className="space-y-8"
+            >
               {/* missing keywords */}
               <div className="bg-white/40 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm backdrop-blur-md">
                 <h3 className="text-md font-extrabold text-slate-950 dark:text-white mb-4 flex items-center gap-2">
@@ -370,137 +432,172 @@ ${result.finalVerdict}
                   "{result.finalVerdict}"
                 </p>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         )}
 
         {/* TAB 2: INTERACTIVE RESUME SHEET WITH FLOATING MISTAKE TAGS */}
-        {activeTab === "resume-audit" && (
-          <motion.div
-            key="resume-audit"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            className="grid lg:grid-cols-3 gap-8"
-          >
-            {/* Simulated Resume Sheet */}
-            <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 md:p-10 shadow-xl text-slate-850 font-sans min-h-[800px] relative overflow-hidden">
-              {/* Simulated PDF Header */}
-              <div className="border-b-2 border-slate-800 pb-5 mb-6 text-center relative group">
-                <h2 className="text-2xl font-bold tracking-tight text-slate-900">{parsedResume.name}</h2>
-                <p className="text-xs text-slate-500 mt-1 flex justify-center gap-3">
-                  <span>{parsedResume.email}</span>
-                  {parsedResume.phone && (
-                    <>
-                      <span>•</span>
-                      <span>{parsedResume.phone}</span>
-                    </>
-                  )}
-                </p>
+        {activeTab === "resume-audit" && (() => {
+          const hasHeaderMistake = result.mistakes.some(m => m.section.toLowerCase().includes("header") || m.section.toLowerCase().includes("contact") || m.section.toLowerCase().includes("summary"));
+          const hasSkillsMistake = result.mistakes.some(m => m.section.toLowerCase().includes("skill"));
+          const hasExperienceMistake = result.mistakes.some(m => m.section.toLowerCase().includes("experience") || m.section.toLowerCase().includes("work"));
+          const hasEducationMistake = result.mistakes.some(m => m.section.toLowerCase().includes("education") || m.section.toLowerCase().includes("school"));
+
+          return (
+            <motion.div
+              key="resume-audit"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              className="grid lg:grid-cols-3 gap-8"
+            >
+              {/* Simulated Resume Sheet */}
+              <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 md:p-10 shadow-xl text-slate-850 font-sans min-h-[800px] relative overflow-hidden">
                 
-                {/* Float tag for header section */}
-                {result.mistakes.some(m => m.section.toLowerCase().includes("header") || m.section.toLowerCase().includes("contact") || m.section.toLowerCase().includes("summary")) && (
-                  <button 
-                    onClick={() => {
-                      const idx = result.mistakes.findIndex(m => m.section.toLowerCase().includes("header") || m.section.toLowerCase().includes("contact") || m.section.toLowerCase().includes("summary"));
-                      if (idx !== -1) setSelectedMistake(idx);
-                    }}
-                    className="absolute right-0 top-0 bg-rose-500 text-white font-bold text-[10px] uppercase px-2.5 py-1 rounded-full animate-bounce shadow-md hover:bg-rose-600 transition-colors cursor-pointer"
-                  >
-                    ⚠️ Header Alert!
-                  </button>
-                )}
-              </div>
+                {/* SLAMMING STAMP on Simulated Resume */}
+                <motion.div
+                  initial={{ scale: 5, rotate: -60, opacity: 0 }}
+                  animate={{ scale: 1, rotate: -8, opacity: 0.85 }}
+                  transition={{ 
+                    type: "spring", 
+                    stiffness: 350, 
+                    damping: 15,
+                    delay: 0.4
+                  }}
+                  className="absolute right-8 top-16 z-30 border-4 border-double border-red-600 text-red-600 font-black text-sm sm:text-lg px-3 py-1 bg-white/95 pointer-events-none select-none font-mono opacity-85 rotate-[-8deg] shadow-md flex flex-col items-center"
+                >
+                  <span className="text-[8px] leading-none tracking-tight">ATS STATUS</span>
+                  <span className="text-sm sm:text-base font-black leading-none uppercase">REJECTED 🔴</span>
+                </motion.div>
 
-              {/* Skills Section */}
-              <div className="mb-6 relative group">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1 mb-2.5">Skills</h3>
-                <div className="flex flex-wrap gap-1.5">
-                  {parsedResume.skills.map((skill, i) => (
-                    <span key={i} className="text-xs px-2 py-0.5 bg-slate-100 border border-slate-200 rounded text-slate-700">
-                      {skill}
-                    </span>
-                  ))}
+                {/* Simulated PDF Header with highlighter effect if there's a mistake */}
+                <div className={`transition-all duration-300 rounded-lg p-2 ${hasHeaderMistake ? 'bg-yellow-100/50 border-2 border-dashed border-yellow-300/60 relative' : 'border-b-2 border-slate-800 pb-5 mb-6'} text-center relative group`}>
+                  {hasHeaderMistake && (
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-yellow-400 opacity-60 rounded-t-lg" />
+                  )}
+                  <h2 className="text-2xl font-bold tracking-tight text-slate-900">{parsedResume.name}</h2>
+                  <p className="text-xs text-slate-500 mt-1 flex justify-center gap-3">
+                    <span>{parsedResume.email}</span>
+                    {parsedResume.phone && (
+                      <>
+                        <span>•</span>
+                        <span>{parsedResume.phone}</span>
+                      </>
+                    )}
+                  </p>
+                  
+                  {/* Float tag for header section */}
+                  {hasHeaderMistake && (
+                    <button 
+                      onClick={() => {
+                        const idx = result.mistakes.findIndex(m => m.section.toLowerCase().includes("header") || m.section.toLowerCase().includes("contact") || m.section.toLowerCase().includes("summary"));
+                        if (idx !== -1) setSelectedMistake(idx);
+                      }}
+                      className="absolute right-0 top-0 bg-rose-500 text-white font-bold text-[10px] uppercase px-2.5 py-1 rounded-full animate-bounce shadow-md hover:bg-rose-600 transition-colors cursor-pointer z-10"
+                    >
+                      ⚠️ Header Alert!
+                    </button>
+                  )}
                 </div>
 
-                {result.mistakes.some(m => m.section.toLowerCase().includes("skill")) && (
-                  <button 
-                    onClick={() => {
-                      const idx = result.mistakes.findIndex(m => m.section.toLowerCase().includes("skill"));
-                      if (idx !== -1) setSelectedMistake(idx);
-                    }}
-                    className="absolute right-0 top-0 bg-rose-500 text-white font-bold text-[10px] uppercase px-2.5 py-1 rounded-full animate-bounce shadow-md hover:bg-rose-600 transition-colors cursor-pointer"
-                  >
-                    ⚠️ Skill Bloat!
-                  </button>
-                )}
-              </div>
+                {/* Skills Section with highlighter marker effect */}
+                <div className={`mb-6 p-2 rounded-lg transition-all duration-300 relative group ${hasSkillsMistake ? 'bg-yellow-100/50 border-2 border-dashed border-yellow-300/60' : ''}`}>
+                  {hasSkillsMistake && (
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-yellow-400 opacity-60 rounded-t-lg" />
+                  )}
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1 mb-2.5">Skills</h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {parsedResume.skills.map((skill, i) => (
+                      <span key={i} className="text-xs px-2 py-0.5 bg-slate-100 border border-slate-200 rounded text-slate-700">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
 
-              {/* Experience Section */}
-              <div className="mb-6 relative group">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1 mb-4">Work Experience</h3>
-                <div className="space-y-4">
-                  {parsedResume.experience.map((exp, idx) => (
-                    <div key={idx}>
-                      <div className="flex justify-between text-xs font-bold text-slate-900">
-                        <span>{exp.company} — {exp.role}</span>
-                        <span className="text-slate-500">{exp.duration}</span>
+                  {hasSkillsMistake && (
+                    <button 
+                      onClick={() => {
+                        const idx = result.mistakes.findIndex(m => m.section.toLowerCase().includes("skill"));
+                        if (idx !== -1) setSelectedMistake(idx);
+                      }}
+                      className="absolute right-0 top-0 bg-rose-500 text-white font-bold text-[10px] uppercase px-2.5 py-1 rounded-full animate-bounce shadow-md hover:bg-rose-600 transition-colors cursor-pointer z-10"
+                    >
+                      ⚠️ Skill Bloat!
+                    </button>
+                  )}
+                </div>
+
+                {/* Experience Section with highlighter marker effect */}
+                <div className={`mb-6 p-2 rounded-lg transition-all duration-300 relative group ${hasExperienceMistake ? 'bg-yellow-100/50 border-2 border-dashed border-yellow-300/60' : ''}`}>
+                  {hasExperienceMistake && (
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-yellow-400 opacity-60 rounded-t-lg" />
+                  )}
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1 mb-4">Work Experience</h3>
+                  <div className="space-y-4">
+                    {parsedResume.experience.map((exp, idx) => (
+                      <div key={idx}>
+                        <div className="flex justify-between text-xs font-bold text-slate-900">
+                          <span>{exp.company} — {exp.role}</span>
+                          <span className="text-slate-500">{exp.duration}</span>
+                        </div>
+                        <p className="text-xs text-slate-600 mt-1 leading-relaxed font-sans whitespace-pre-line">
+                          {exp.description}
+                        </p>
                       </div>
-                      <p className="text-xs text-slate-600 mt-1 leading-relaxed font-sans whitespace-pre-line">
-                        {exp.description}
-                      </p>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+
+                  {hasExperienceMistake && (
+                    <button 
+                      onClick={() => {
+                        const idx = result.mistakes.findIndex(m => m.section.toLowerCase().includes("experience") || m.section.toLowerCase().includes("work"));
+                        if (idx !== -1) setSelectedMistake(idx);
+                      }}
+                      className="absolute right-0 top-0 bg-rose-500 text-white font-bold text-[10px] uppercase px-2.5 py-1 rounded-full animate-bounce shadow-md hover:bg-rose-600 transition-colors cursor-pointer z-10"
+                    >
+                      ⚠️ Metric Alert!
+                    </button>
+                  )}
                 </div>
 
-                {result.mistakes.some(m => m.section.toLowerCase().includes("experience") || m.section.toLowerCase().includes("work")) && (
-                  <button 
-                    onClick={() => {
-                      const idx = result.mistakes.findIndex(m => m.section.toLowerCase().includes("experience") || m.section.toLowerCase().includes("work"));
-                      if (idx !== -1) setSelectedMistake(idx);
-                    }}
-                    className="absolute right-0 top-0 bg-rose-500 text-white font-bold text-[10px] uppercase px-2.5 py-1 rounded-full animate-bounce shadow-md hover:bg-rose-600 transition-colors cursor-pointer"
-                  >
-                    ⚠️ Metric Alert!
-                  </button>
-                )}
-              </div>
+                {/* Education Section with highlighter marker effect */}
+                <div className={`p-2 rounded-lg transition-all duration-300 relative group ${hasEducationMistake ? 'bg-yellow-100/50 border-2 border-dashed border-yellow-300/60' : ''}`}>
+                  {hasEducationMistake && (
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-yellow-400 opacity-60 rounded-t-lg" />
+                  )}
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1 mb-3">Education</h3>
+                  <div className="space-y-3">
+                    {parsedResume.education.map((edu, idx) => (
+                      <div key={idx} className="flex justify-between text-xs font-semibold text-slate-800">
+                        <span>{edu.school} — {edu.degree}</span>
+                        <span className="text-slate-500 font-normal">{edu.year}</span>
+                      </div>
+                    ))}
+                  </div>
 
-              {/* Education Section */}
-              <div className="relative group">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1 mb-3">Education</h3>
-                <div className="space-y-3">
-                  {parsedResume.education.map((edu, idx) => (
-                    <div key={idx} className="flex justify-between text-xs font-semibold text-slate-800">
-                      <span>{edu.school} — {edu.degree}</span>
-                      <span className="text-slate-500 font-normal">{edu.year}</span>
-                    </div>
-                  ))}
+                  {hasEducationMistake && (
+                    <button 
+                      onClick={() => {
+                        const idx = result.mistakes.findIndex(m => m.section.toLowerCase().includes("education") || m.section.toLowerCase().includes("school"));
+                        if (idx !== -1) setSelectedMistake(idx);
+                      }}
+                      className="absolute right-0 top-0 bg-rose-500 text-white font-bold text-[10px] uppercase px-2.5 py-1 rounded-full animate-bounce shadow-md hover:bg-rose-600 transition-colors cursor-pointer z-10"
+                    >
+                      ⚠️ Education Alert!
+                    </button>
+                  )}
                 </div>
-
-                {result.mistakes.some(m => m.section.toLowerCase().includes("education") || m.section.toLowerCase().includes("school")) && (
-                  <button 
-                    onClick={() => {
-                      const idx = result.mistakes.findIndex(m => m.section.toLowerCase().includes("education") || m.section.toLowerCase().includes("school"));
-                      if (idx !== -1) setSelectedMistake(idx);
-                    }}
-                    className="absolute right-0 top-0 bg-rose-500 text-white font-bold text-[10px] uppercase px-2.5 py-1 rounded-full animate-bounce shadow-md hover:bg-rose-600 transition-colors cursor-pointer"
-                  >
-                    ⚠️ Education Alert!
-                  </button>
-                )}
               </div>
-            </div>
 
-            {/* Sidebar detailing selected mistake details */}
-            <div className="space-y-6">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Interactive Inspector</h3>
-                <p className="text-xs text-slate-500 leading-relaxed mb-6">
-                  Click on the pulsing red badges over the resume layout on the left to inspect specific grammar, formatting, and impact issues.
-                </p>
+              {/* Sidebar detailing selected mistake details and handy sticky notes */}
+              <div className="space-y-6">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Interactive Inspector</h3>
+                  <p className="text-xs text-slate-500 leading-relaxed mb-6">
+                    Click on the pulsing red badges over the resume layout on the left to inspect specific grammar, formatting, and impact issues.
+                  </p>
 
-                <AnimatePresence mode="wait">
+                  <AnimatePresence mode="wait">
                   {selectedMistake !== null ? (
                     <motion.div
                       key={selectedMistake}
@@ -531,15 +628,36 @@ ${result.finalVerdict}
                       </div>
                     </motion.div>
                   ) : (
-                    <div className="text-center py-10 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 text-xs sm:text-sm">
-                      No mistake selected. Click an alert badge on the resume page.
+                    <div className="text-center py-12 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 dark:text-slate-500 text-xs sm:text-sm px-4">
+                      <p className="text-base mb-1 font-semibold text-slate-500 dark:text-slate-400">🕵️ Inspector Idle</p>
+                      Click one of those pulsing red alarm badges on the resume sheet to start the dissection.
                     </div>
                   )}
                 </AnimatePresence>
               </div>
+
+              {/* Taped Sticky Note */}
+              <motion.div
+                initial={{ scale: 0.8, rotate: -6, y: 50 }}
+                animate={{ scale: 1, rotate: 3, y: 0 }}
+                transition={{ type: "spring", stiffness: 100, damping: 10, delay: 0.3 }}
+                className="bg-yellow-100 dark:bg-yellow-950/40 p-5 border border-yellow-200 dark:border-yellow-900/50 shadow-md rounded-lg rotate-[3deg] relative font-mono text-xs text-yellow-850 dark:text-yellow-200 overflow-hidden"
+              >
+                {/* Simulated TAPE on top of sticky note */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-5 bg-white/40 dark:bg-black/35 backdrop-blur-xs rotate-[-2deg] border border-white/20 shadow-xs" />
+                <h4 className="font-extrabold text-xs mb-1 text-yellow-900 dark:text-yellow-300 flex items-center gap-1">
+                  📌 HR POST-IT:
+                </h4>
+                <p className="italic leading-relaxed font-mono">
+                  "Your formatting is so chaotic it gave our AI a mild headache. Please resolve these issues before our database melts."
+                </p>
+                <div className="mt-3 text-[10px] text-yellow-700 dark:text-yellow-400 text-right font-black">
+                  — The Review Desk
+                </div>
+              </motion.div>
             </div>
           </motion.div>
-        )}
+        ); })()}
 
         {/* TAB 3: STEP-BY-STEP ACTION PLAN */}
         {activeTab === "improvements" && (
