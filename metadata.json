@@ -1,0 +1,6 @@
+{
+  "name": "Resume Roaster AI",
+  "description": "A modern web application that roasts your resume with humor and provides actionable, professional feedback for ATS optimization.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
