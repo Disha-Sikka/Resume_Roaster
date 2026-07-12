@@ -1,0 +1,9 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/api/parse", "destination": "/api/parse.ts" },
+    { "source": "/api/roast", "destination": "/api/roast.ts" },
+    { "source": "/api/health", "destination": "/api/health.ts" },
+    { "source": "/((?!api/).*)", "destination": "/" }
+  ]
+}
