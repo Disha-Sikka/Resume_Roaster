@@ -42,6 +42,28 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+function mapGeminiError(err: any): { error: string; details: string } {
+  const message = String(err?.message || err || "").toLowerCase();
+  
+  let friendlyMessage = "Failed to roast resume with Gemini AI.";
+  if (message.includes("quota") || message.includes("429") || message.includes("limit") || message.includes("exhausted")) {
+    friendlyMessage = "Gemini quota exceeded.";
+  } else if (message.includes("api_key") || message.includes("api key") || message.includes("key not") || message.includes("invalid") || message.includes("403") || message.includes("unauthorized") || message.includes("401")) {
+    friendlyMessage = "Invalid API key.";
+  } else if (message.includes("model not found") || message.includes("404") || message.includes("not found")) {
+    friendlyMessage = "Model not found.";
+  } else if (message.includes("timeout") || message.includes("timed out") || message.includes("deadline")) {
+    friendlyMessage = "Request timed out.";
+  } else if (message.includes("json") || message.includes("parse") || message.includes("syntax")) {
+    friendlyMessage = "JSON parsing failed.";
+  }
+  
+  return {
+    error: friendlyMessage,
+    details: err.message || String(err),
+  };
+}
+
 // API Route: Parse Resume text into structured fields
 app.post("/api/parse", async (req, res) => {
   const { text } = req.body;
@@ -51,12 +73,22 @@ app.post("/api/parse", async (req, res) => {
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
+    console.error("❌ Gemini API Key is missing. Please check your system environment/secrets.");
+    const isProd = process.env.NODE_ENV === "production";
+    const displayError = isProd 
+      ? "AI analysis is temporarily unavailable. Please try again later." 
+      : "Invalid API key.";
     return res.status(500).json({
-      error: "Gemini API Key is missing. Please add it to your secrets panel to enable parsing.",
+      error: `Parsing Error: ${displayError}`,
     });
   }
 
   try {
+    console.log("\n--- PARSING FLOW STARTED ---");
+    console.log("Resume uploaded ✅");
+    console.log(`Characters extracted: ${text.length}`);
+    console.log("Sending request to Gemini parser...");
+
     const ai = getGeminiClient();
     const prompt = `
 You are a precise resume parser. Extract information from the following raw resume text and format it into the requested JSON schema.
@@ -122,17 +154,29 @@ ${text}
       }
     });
 
+    console.log("Received response from parser.");
+    console.log("Parsing JSON...");
+
     if (!response.text) {
       throw new Error("No text returned from Gemini parser.");
     }
 
     const parsedJson = JSON.parse(response.text.trim());
+    console.log("Resume parsed ✅");
+    console.log("Done.");
+    console.log("--- PARSING FLOW COMPLETED ---\n");
     return res.json(parsedJson);
   } catch (err: any) {
-    console.error("Resume parsing error:", err);
+    console.error("❌ Resume parsing failed with error:", err);
+    const isProd = process.env.NODE_ENV === "production";
+    const mapped = mapGeminiError(err);
+    const displayError = isProd 
+      ? "AI analysis is temporarily unavailable. Please try again later." 
+      : mapped.error;
+
     return res.status(500).json({
-      error: "Failed to parse resume with Gemini AI.",
-      details: err.message,
+      error: `Parsing Error: ${displayError}`,
+      details: isProd ? undefined : mapped.details,
     });
   }
 });
@@ -147,12 +191,23 @@ app.post("/api/roast", async (req, res) => {
   const roastMode = mode || "savage";
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
+    console.error("❌ Gemini API Key is missing for roasting. Please check your system environment/secrets.");
+    const isProd = process.env.NODE_ENV === "production";
+    const displayError = isProd 
+      ? "AI analysis is temporarily unavailable. Please try again later." 
+      : "Invalid API key.";
     return res.status(500).json({
-      error: "Gemini API Key is missing. Please add it to your secrets panel to enable roasting.",
+      error: `AI Analysis Error: ${displayError}`,
     });
   }
 
   try {
+    console.log("\n--- ROAST FLOW STARTED ---");
+    console.log("Resume uploaded ✅");
+    console.log("Resume parsed ✅");
+    console.log(`Characters extracted: ${text.length}`);
+    console.log("Sending request to Gemini...");
+
     const ai = getGeminiClient();
 
     let modeInstruction = "";
@@ -275,17 +330,28 @@ Please analyze the resume and return a JSON object adhering exactly to the follo
       }
     });
 
+    console.log("Received response.");
+    console.log("Parsing JSON...");
+
     if (!response.text) {
       throw new Error("No text returned from Gemini roaster.");
     }
 
     const roastedJson = JSON.parse(response.text.trim());
+    console.log("Done.");
+    console.log("--- ROAST FLOW COMPLETED ---\n");
     return res.json(roastedJson);
   } catch (err: any) {
-    console.error("Resume roasting error:", err);
+    console.error("❌ Resume roasting failed with error:", err);
+    const isProd = process.env.NODE_ENV === "production";
+    const mapped = mapGeminiError(err);
+    const displayError = isProd 
+      ? "AI analysis is temporarily unavailable. Please try again later." 
+      : mapped.error;
+
     return res.status(500).json({
-      error: "Failed to roast resume with Gemini AI.",
-      details: err.message,
+      error: `AI Analysis Error: ${displayError}`,
+      details: isProd ? undefined : mapped.details,
     });
   }
 });

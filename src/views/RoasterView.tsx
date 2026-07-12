@@ -40,16 +40,7 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
     return subtexts[Math.floor(Math.random() * subtexts.length)];
   });
 
-  const funnyErrors = [
-    "This resume refused to cooperate.",
-    "Upload failed. Even our server looked away.",
-    "This PDF is holding onto secrets."
-  ];
-
-  const setFunnyError = (rawErr: string) => {
-    const randomFunny = funnyErrors[Math.floor(Math.random() * funnyErrors.length)];
-    setError(`${randomFunny} (${rawErr})`);
-  };
+  // No more random generic funny errors - we will show structured category-specific errors instead.
 
   const modesInfo = [
     {
@@ -103,7 +94,7 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
   const validateAndParseFile = async (selectedFile: File) => {
     setError(null);
     if (selectedFile.size > 10 * 1024 * 1024) {
-      setFunnyError("File exceeds maximum size of 10MB.");
+      setError("Upload Error: File exceeds maximum size of 10MB.");
       return;
     }
 
@@ -117,7 +108,7 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
       await parseResumeMetadata(text);
     } catch (err: any) {
       console.error(err);
-      setFunnyError(err.message || "An error occurred while parsing the file.");
+      setError("Upload Error: " + (err.message || "An error occurred while reading the file."));
       setIsParsing(false);
     }
   };
@@ -140,7 +131,7 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
 
   const handlePasteSubmit = async () => {
     if (!pasteText.trim()) {
-      setFunnyError("Please paste some resume text first.");
+      setError("Upload Error: Please paste some resume text first.");
       return;
     }
     setError(null);
@@ -149,7 +140,7 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
       setRawText(pasteText);
       await parseResumeMetadata(pasteText);
     } catch (err: any) {
-      setFunnyError(err.message || "An error occurred.");
+      setError("Upload Error: " + (err.message || "An error occurred."));
       setIsParsing(false);
     }
   };
@@ -173,6 +164,7 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
     } catch (err: any) {
       // Fallback: Create a structured object from basic scanning or generic fields
       console.warn("Structured parsing failed, using simple fallback", err);
+      setError("Parsing Error: " + (err.message || "Failed to parse structured resume data. Defaulting to manual editor view."));
       const fallbackData: ParsedResume = {
         name: "Resume Owner",
         email: "unknown@email.com",
@@ -305,7 +297,7 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
       }
     } catch (err: any) {
       clearInterval(interval);
-      setFunnyError(err.message || "Roasting failed due to server error.");
+      setError("AI Analysis Error: " + (err.message || "Roasting failed due to server error."));
       setStep("review");
     }
   };
@@ -334,18 +326,67 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
       </div>
 
       <AnimatePresence mode="wait">
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="mb-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 text-rose-800 dark:text-rose-300 text-sm flex gap-3 items-center"
-          >
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <div className="flex-1">{error}</div>
-            <button onClick={() => setError(null)} className="text-rose-500 hover:text-rose-700 font-bold px-2 cursor-pointer">×</button>
-          </motion.div>
-        )}
+        {error && (() => {
+          let category = "Error";
+          let message = error;
+          if (error.startsWith("Upload Error:")) {
+            category = "Upload Error";
+            message = error.replace("Upload Error:", "").trim();
+          } else if (error.startsWith("Parsing Error:")) {
+            category = "Parsing Error";
+            message = error.replace("Parsing Error:", "").trim();
+          } else if (error.startsWith("AI Analysis Error:")) {
+            category = "AI Analysis Error";
+            message = error.replace("AI Analysis Error:", "").trim();
+          }
+
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-900 dark:text-rose-200 text-sm shadow-md"
+            >
+              <div className="flex gap-3 items-start">
+                <AlertCircle className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5 animate-bounce" />
+                <div className="flex-1 space-y-1">
+                  <span className="font-extrabold uppercase tracking-wider text-rose-600 dark:text-rose-400 text-xs block">
+                    ❌ {category}
+                  </span>
+                  <p className="text-slate-800 dark:text-slate-300 font-medium">
+                    {message}
+                  </p>
+                  {!!(import.meta as any).env?.DEV && message.toLowerCase().includes("api key") && (
+                    <p className="text-xs text-rose-700 dark:text-rose-400/90 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-lg mt-2 font-medium">
+                      💡 <strong>Tip:</strong> Please check your <strong>GEMINI_API_KEY</strong> in the Secrets / Settings panel in the top-right of your Google AI Studio workspace. Once configured, you can click <strong>"Retry Roast 🔥"</strong> below to instantly resume your roast!
+                    </p>
+                  )}
+                  {category === "AI Analysis Error" && (
+                    <div className="mt-3">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setError(null);
+                          executeRoast();
+                        }}
+                        className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 active:scale-[0.98] text-white font-bold text-xs flex items-center gap-1.5 shadow transition-all cursor-pointer"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        Retry Roast 🔥
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <button 
+                  onClick={() => setError(null)} 
+                  className="text-slate-400 hover:text-rose-500 font-bold px-2 cursor-pointer transition-colors text-lg leading-none"
+                >
+                  ×
+                </button>
+              </div>
+            </motion.div>
+          );
+        })()}
 
         {/* STEP 1: UPLOAD AREA */}
         {step === "upload" && (
@@ -768,12 +809,19 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
                 ))}
               </div>
 
-              <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+              <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center gap-4 flex-wrap">
+                <button
+                  type="button"
+                  onClick={resetAll}
+                  className="px-6 py-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100/50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 font-semibold text-sm cursor-pointer transition-colors"
+                >
+                  Start Over (Upload New File)
+                </button>
                 <button
                   onClick={executeRoast}
                   className="px-8 py-4 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 hover:scale-[1.02] active:scale-[0.98] text-white font-bold text-lg flex items-center gap-2 shadow-lg hover:shadow-purple-500/25 transition-all cursor-pointer"
                 >
-                  Apply High Temperature Roast
+                  {error && error.startsWith("AI Analysis Error:") ? "Retry Roast 🔥" : "Apply High Temperature Roast"}
                   <Flame className="w-5 h-5 animate-pulse" />
                 </button>
               </div>
