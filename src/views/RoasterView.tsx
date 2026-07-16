@@ -99,17 +99,19 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
     }
 
     setFile(selectedFile);
-    setProgress(10);
+    setProgress(15);
     setIsParsing(true);
 
     try {
       const text = await extractTextFromFile(selectedFile, (pct) => setProgress(pct));
       setRawText(text);
-      await parseResumeMetadata(text);
     } catch (err: any) {
       console.error(err);
       setError("Upload Error: " + (err.message || "An error occurred while reading the file."));
+      setFile(null);
+    } finally {
       setIsParsing(false);
+      setProgress(0);
     }
   };
 
@@ -135,14 +137,7 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
       return;
     }
     setError(null);
-    setIsParsing(true);
-    try {
-      setRawText(pasteText);
-      await parseResumeMetadata(pasteText);
-    } catch (err: any) {
-      setError("Upload Error: " + (err.message || "An error occurred."));
-      setIsParsing(false);
-    }
+    setRawText(pasteText);
   };
 
   // Call API to parse resume into structured schema before roasting
@@ -196,8 +191,43 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
     setParsedData({ ...parsedData, [field]: value });
   };
 
-  const executeRoast = async () => {
-    if (!rawText || !parsedData) return;
+  const createFallbackParsedResume = (text: string, filename?: string): ParsedResume => {
+    const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    const email = emailMatch ? emailMatch[0] : "unknown@email.com";
+
+    const phoneMatch = text.match(/(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
+    const phone = phoneMatch ? phoneMatch[0] : "";
+
+    let name = "Resume Owner";
+    if (filename) {
+      const cleanName = filename.split(".")[0].replace(/[_-]/g, " ").replace(/\s*(resume|cv|pdf|docx|txt)\s*/gi, "").trim();
+      if (cleanName) {
+        name = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+      }
+    } else {
+      const firstLine = text.split("\n")[0]?.trim();
+      if (firstLine && firstLine.length < 40 && firstLine.length > 2) {
+        name = firstLine;
+      }
+    }
+
+    return {
+      name,
+      email,
+      phone,
+      skills: ["Technical Skills"],
+      education: [{ school: "Education Institution", degree: "Course / Specialization", year: "" }],
+      experience: [{ company: "Workplace", role: "Job Role", duration: "", description: "Extracted raw details used for roast analysis." }],
+      projects: [],
+      certifications: []
+    };
+  };
+
+  const executeRoast = async (forcedParsedData?: ParsedResume) => {
+    if (!rawText) return;
+    
+    const dataToUse = forcedParsedData || parsedData || createFallbackParsedResume(rawText, file?.name);
+    
     setStep("roasting");
     setError(null);
     
@@ -229,7 +259,7 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
         body: JSON.stringify({
           text: rawText,
           mode: selectedMode,
-          parsedResume: parsedData
+          parsedResume: dataToUse
         }),
       });
       
@@ -246,7 +276,7 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
       const data = await response.json();
       clearInterval(interval);
 
-      const fileName = file ? file.name : `${parsedData.name}_Resume.txt`;
+      const fileName = file ? file.name : `${dataToUse.name}_Resume.txt`;
         
         // --- EASTER EGGS INJECTION ---
         const updatedData = { ...data };
@@ -420,114 +450,199 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
               </p>
             </div>
 
-            {/* Toggle Upload vs Paste */}
-            <div className="flex justify-center mb-8 max-w-sm mx-auto p-1 bg-slate-100/80 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl backdrop-blur-sm">
-              <button
-                onClick={() => setUsePaste(false)}
-                className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex justify-center items-center gap-2 cursor-pointer ${!usePaste ? "bg-white dark:bg-white/10 border border-slate-200/50 dark:border-white/10 text-purple-600 dark:text-purple-400 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
-              >
-                <Upload className="w-4 h-4" />
-                Upload File
-              </button>
-              <button
-                onClick={() => setUsePaste(true)}
-                className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex justify-center items-center gap-2 cursor-pointer ${usePaste ? "bg-white dark:bg-white/10 border border-slate-200/50 dark:border-white/10 text-purple-600 dark:text-purple-400 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
-              >
-                <Clipboard className="w-4 h-4" />
-                Paste Resume Text
-              </button>
-            </div>
-
-            {!usePaste ? (
-              /* Drag & Drop Upload Zone */
-              <div
-                onDragEnter={handleDrag}
-                onDragOver={handleDrag}
-                onDragLeave={handleDrag}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-300 relative overflow-hidden ${
-                  dragActive 
-                    ? "border-red-500 bg-red-500/10 shadow-lg shadow-red-500/10" 
-                    : "border-slate-300 dark:border-white/10 hover:border-red-500/50 hover:bg-slate-50 dark:hover:bg-white/5"
-                } ${isParsing ? "pointer-events-none opacity-50" : ""}`}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.docx,.txt"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-                
-                {isParsing ? (
-                  <div className="py-6 flex flex-col items-center">
-                    <RefreshCw className="w-12 h-12 text-purple-500 animate-spin" />
-                    <h3 className="mt-4 font-bold text-slate-800 dark:text-slate-200">Deconstructing career decisions...</h3>
-                    <p className="text-slate-500 text-xs mt-1">{progress}% parsed</p>
-                    {/* Progress Bar */}
-                    <div className="w-full max-w-xs bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full mt-4 overflow-hidden">
-                      <div className="bg-purple-600 h-full transition-all duration-300" style={{ width: `${progress}%` }} />
+            {file || rawText ? (
+              /* DUAL-ROUTE DASHBOARD (FAST PATH VS REVIEW PATH) */
+              <div className="space-y-6">
+                <div className="p-6 rounded-2xl bg-purple-500/5 border border-purple-500/10 flex flex-col sm:flex-row justify-between items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-xl">
+                      <FileText className="w-8 h-8 animate-pulse" />
+                    </div>
+                    <div className="text-left">
+                      <h3 className="font-extrabold text-slate-900 dark:text-white text-base">
+                        {file ? file.name : "Pasted Resume Content"}
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                        {file ? `${(file.size / 1024).toFixed(1)} KB` : `${rawText.length} characters`} • Extracted successfully
+                      </p>
                     </div>
                   </div>
-                ) : (
-                  <motion.div 
-                    whileHover={{ rotate: [0, -1, 1, -1, 1, 0] }}
-                    transition={{ duration: 0.3 }}
-                    className="py-6 flex flex-col items-center select-none"
+                  <button
+                    onClick={resetAll}
+                    className="px-4 py-2 rounded-xl border border-slate-200 dark:border-white/10 hover:bg-rose-500/10 hover:text-rose-600 dark:hover:bg-rose-500/10 hover:border-rose-500/20 text-xs font-bold text-slate-500 dark:text-slate-400 cursor-pointer transition-all flex items-center gap-1.5"
                   >
-                    <div className={`p-4 rounded-full transition-all ${dragActive ? 'bg-red-100 text-red-600' : 'bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400'}`}>
-                      <FileText className={`w-10 h-10 ${dragActive ? 'animate-bounce' : ''}`} />
-                    </div>
-                    
-                    <h3 className="mt-4 font-black text-slate-800 dark:text-white text-xl sm:text-2xl tracking-tight">
-                      {dragActive ? "Careful... We're about to read this." : "Drop the crime scene here."}
-                    </h3>
-                    
-                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 font-medium italic">
-                      {dragActive ? "Drop to ignite." : subtext}
-                    </p>
-                    
-                    <div className="mt-6 inline-flex gap-4 text-xs font-semibold text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 px-4 py-1.5 rounded-full bg-slate-50 dark:bg-slate-900">
-                      <span>PDF</span>
-                      <span className="text-slate-300 dark:text-slate-700">|</span>
-                      <span>DOCX</span>
-                      <span className="text-slate-300 dark:text-slate-700">|</span>
-                      <span>TXT</span>
-                      <span className="text-slate-300 dark:text-slate-700">|</span>
-                      <span>Max 10MB of regrets</span>
-                    </div>
-                  </motion.div>
-                )}
+                    <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                    Remove
+                  </button>
+                </div>
+
+                {/* Roast Style Picker directly in Step 1 */}
+                <div className="bg-slate-50/50 dark:bg-white/5 border border-slate-200/60 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                    <Flame className="w-5 h-5 text-orange-500 animate-pulse" />
+                    Select Your Roast Style
+                  </h3>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    {modesInfo.map((mode) => (
+                      <button
+                        key={mode.id}
+                        onClick={() => setSelectedMode(mode.id)}
+                        className={`flex flex-col text-left p-4 rounded-2xl border-2 transition-all duration-300 group cursor-pointer ${
+                          selectedMode === mode.id 
+                            ? "border-purple-500 dark:border-purple-500 shadow-lg shadow-purple-500/15 scale-[1.02] bg-purple-500/10" 
+                            : "border-slate-200 dark:border-white/10 hover:scale-[1.01] bg-white dark:bg-slate-900"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          {mode.icon}
+                        </div>
+                        <h4 className="font-bold text-slate-900 dark:text-white text-sm mt-3 leading-tight group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                          {mode.label}
+                        </h4>
+                        <p className="text-slate-500 dark:text-slate-400 text-xs mt-1.5 leading-normal flex-1">
+                          {mode.desc}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Big Action Buttons */}
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {/* Left option: Instant Direct Roast */}
+                  <button
+                    onClick={() => {
+                      const fallback = createFallbackParsedResume(rawText, file?.name);
+                      executeRoast(fallback);
+                    }}
+                    className="p-5 rounded-2xl bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 hover:from-purple-700 hover:to-orange-600 text-white font-extrabold flex flex-col items-center justify-center text-center shadow-lg hover:shadow-purple-500/25 active:scale-[0.99] transition-all cursor-pointer group"
+                  >
+                    <span className="flex items-center gap-2 text-lg sm:text-xl">
+                      Instant Roast! ⚡
+                      <Flame className="w-5 h-5 animate-pulse text-yellow-300 group-hover:rotate-12 transition-transform" />
+                    </span>
+                    <span className="text-xs text-white/85 font-medium mt-1">
+                      Skip structured audit & roast immediately (~3 seconds)
+                    </span>
+                  </button>
+
+                  {/* Right option: Standard Audit Pathway */}
+                  <button
+                    onClick={() => parseResumeMetadata(rawText)}
+                    className="p-5 rounded-2xl border-2 border-purple-500/30 hover:border-purple-500 bg-white/40 dark:bg-white/5 hover:bg-purple-500/5 text-purple-700 dark:text-purple-400 font-extrabold flex flex-col items-center justify-center text-center shadow-sm active:scale-[0.99] transition-all cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2 text-lg sm:text-xl font-bold">
+                      Audit & Customize Profile 📝
+                    </span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
+                      Extract profile fields to edit contact details/skills first (~3 seconds)
+                    </span>
+                  </button>
+                </div>
               </div>
             ) : (
-              /* Paste Resume Text Field */
-              <div className="space-y-4">
-                <textarea
-                  value={pasteText}
-                  onChange={(e) => setPasteText(e.target.value)}
-                  placeholder="Paste your raw, unformatted resume text here (copy from Word, PDF, or LinkedIn)..."
-                  className="w-full h-64 p-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none font-sans"
-                  disabled={isParsing}
-                />
-                <button
-                  onClick={handlePasteSubmit}
-                  disabled={isParsing || !pasteText.trim()}
-                  className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold flex justify-center items-center gap-2 shadow-md hover:shadow-purple-500/20 active:scale-[0.99] disabled:opacity-50 transition-all cursor-pointer"
-                >
-                  {isParsing ? (
-                    <>
-                      <RefreshCw className="w-5 h-5 animate-spin" />
-                      Parsing Resume Text...
-                    </>
-                  ) : (
-                    <>
-                      Analyze Text Structure
-                      <ChevronRight className="w-5 h-5" />
-                    </>
-                  )}
-                </button>
-              </div>
+              /* BEFORE SELECTING A FILE OR TEXT */
+              <>
+                {/* Toggle Upload vs Paste */}
+                <div className="flex justify-center mb-8 max-w-sm mx-auto p-1 bg-slate-100/80 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl backdrop-blur-sm">
+                  <button
+                    onClick={() => setUsePaste(false)}
+                    className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex justify-center items-center gap-2 cursor-pointer ${!usePaste ? "bg-white dark:bg-white/10 border border-slate-200/50 dark:border-white/10 text-purple-600 dark:text-purple-400 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+                  >
+                    <Upload className="w-4 h-4" />
+                    Upload File
+                  </button>
+                  <button
+                    onClick={() => setUsePaste(true)}
+                    className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex justify-center items-center gap-2 cursor-pointer ${usePaste ? "bg-white dark:bg-white/10 border border-slate-200/50 dark:border-white/10 text-purple-600 dark:text-purple-400 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+                  >
+                    <Clipboard className="w-4 h-4" />
+                    Paste Resume Text
+                  </button>
+                </div>
+
+                {!usePaste ? (
+                  /* Drag & Drop Upload Zone */
+                  <div
+                    onDragEnter={handleDrag}
+                    onDragOver={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-300 relative overflow-hidden ${
+                      dragActive 
+                        ? "border-red-500 bg-red-500/10 shadow-lg shadow-red-500/10" 
+                        : "border-slate-300 dark:border-white/10 hover:border-red-500/50 hover:bg-slate-50 dark:hover:bg-white/5"
+                    } ${isParsing ? "pointer-events-none opacity-50" : ""}`}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.docx,.txt"
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
+                    
+                    {isParsing ? (
+                      <div className="py-6 flex flex-col items-center">
+                        <RefreshCw className="w-12 h-12 text-purple-500 animate-spin" />
+                        <h3 className="mt-4 font-bold text-slate-800 dark:text-slate-200">Extracting content client-side...</h3>
+                        <p className="text-slate-500 text-xs mt-1">{progress}% parsed</p>
+                        {/* Progress Bar */}
+                        <div className="w-full max-w-xs bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full mt-4 overflow-hidden">
+                          <div className="bg-purple-600 h-full transition-all duration-300" style={{ width: `${progress}%` }} />
+                        </div>
+                      </div>
+                    ) : (
+                      <motion.div 
+                        whileHover={{ rotate: [0, -1, 1, -1, 1, 0] }}
+                        transition={{ duration: 0.3 }}
+                        className="py-6 flex flex-col items-center select-none"
+                      >
+                        <div className={`p-4 rounded-full transition-all ${dragActive ? 'bg-red-100 text-red-600' : 'bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400'}`}>
+                          <FileText className={`w-10 h-10 ${dragActive ? 'animate-bounce' : ''}`} />
+                        </div>
+                        
+                        <h3 className="mt-4 font-black text-slate-800 dark:text-white text-xl sm:text-2xl tracking-tight">
+                          {dragActive ? "Careful... We're about to read this." : "Drop the crime scene here."}
+                        </h3>
+                        
+                        <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 font-medium italic">
+                          {dragActive ? "Drop to ignite." : subtext}
+                        </p>
+                        
+                        <div className="mt-6 inline-flex gap-4 text-xs font-semibold text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 px-4 py-1.5 rounded-full bg-slate-50 dark:bg-slate-900">
+                          <span>PDF</span>
+                          <span className="text-slate-300 dark:text-slate-700">|</span>
+                          <span>DOCX</span>
+                          <span className="text-slate-300 dark:text-slate-700">|</span>
+                          <span>TXT</span>
+                          <span className="text-slate-300 dark:text-slate-700">|</span>
+                          <span>Max 10MB of regrets</span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+                ) : (
+                  /* Paste Resume Text Field */
+                  <div className="space-y-4">
+                    <textarea
+                      value={pasteText}
+                      onChange={(e) => setPasteText(e.target.value)}
+                      placeholder="Paste your raw, unformatted resume text here (copy from Word, PDF, or LinkedIn)..."
+                      className="w-full h-64 p-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none font-sans"
+                      disabled={isParsing}
+                    />
+                    <button
+                      onClick={handlePasteSubmit}
+                      disabled={isParsing || !pasteText.trim()}
+                      className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold flex justify-center items-center gap-2 shadow-md hover:shadow-purple-500/20 active:scale-[0.99] disabled:opacity-50 transition-all cursor-pointer"
+                    >
+                      Confirm Pasted Text 📝
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </motion.div>
         )}

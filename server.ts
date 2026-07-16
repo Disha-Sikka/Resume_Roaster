@@ -93,7 +93,8 @@ app.post("/api/parse", async (req, res) => {
     const ai = getGeminiClient();
     const prompt = `
 You are a precise resume parser. Extract information from the following raw resume text and format it into the requested JSON schema.
-If certain fields like certifications or projects are not present, return empty arrays. Be as comprehensive and accurate as possible.
+To ensure maximum extraction speed, extract at most 3 items for education, experience, and projects. Keep all description fields extremely brief (at most 1 short sentence). DO NOT write long paragraphs or duplicate full lists of bullet points.
+If certain fields like certifications or projects are not present, return empty arrays.
 
 Resume Text:
 ${text}
@@ -231,6 +232,8 @@ Your output MUST be a valid JSON object matching the requested schema. Ensure al
 
     const prompt = `
 You are Resume Roaster AI. You are roasting the resume of this candidate in "${roastMode}" mode.
+To ensure blazing-fast performance, keep your comments sharp and direct, and limit the 'mistakes' array to exactly 3 items, and the 'improvements' array to exactly 3 items.
+
 Here is the raw resume text:
 ${text}
 

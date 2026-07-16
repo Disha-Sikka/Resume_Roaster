@@ -62,7 +62,8 @@ export async function POST(request: Request) {
     const ai = getGeminiClient();
     const prompt = `
 You are a precise resume parser. Extract information from the following raw resume text and format it into the requested JSON schema.
-If certain fields like certifications or projects are not present, return empty arrays. Be as comprehensive and accurate as possible.
+To ensure maximum extraction speed, extract at most 3 items for education, experience, and projects. Keep all description fields extremely brief (at most 1 short sentence). DO NOT write long paragraphs or duplicate full lists of bullet points.
+If certain fields like certifications or projects are not present, return empty arrays.
 
 Resume Text:
 ${text}
@@ -185,7 +186,8 @@ export default async function handler(req: any, res: any) {
     const ai = getGeminiClient();
     const prompt = `
 You are a precise resume parser. Extract information from the following raw resume text and format it into the requested JSON schema.
-If certain fields like certifications or projects are not present, return empty arrays. Be as comprehensive and accurate as possible.
+To ensure maximum extraction speed, extract at most 3 items for education, experience, and projects. Keep all description fields extremely brief (at most 1 short sentence). DO NOT write long paragraphs or duplicate full lists of bullet points.
+If certain fields like certifications or projects are not present, return empty arrays.
 
 Resume Text:
 ${text}
