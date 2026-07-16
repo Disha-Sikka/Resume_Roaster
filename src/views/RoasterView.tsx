@@ -226,7 +226,12 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
   const executeRoast = async (forcedParsedData?: ParsedResume) => {
     if (!rawText) return;
     
-    const dataToUse = forcedParsedData || parsedData || createFallbackParsedResume(rawText, file?.name);
+    // Safety guard: ensure forcedParsedData is a valid ParsedResume and not a React Event or other object
+    const cleanForcedData = (forcedParsedData && typeof forcedParsedData === 'object' && 'name' in forcedParsedData && typeof (forcedParsedData as any).name === 'string')
+      ? forcedParsedData
+      : undefined;
+
+    const dataToUse = cleanForcedData || parsedData || createFallbackParsedResume(rawText, file?.name);
     
     setStep("roasting");
     setError(null);
@@ -946,7 +951,7 @@ export default function RoasterView({ onRoastCompleted }: RoasterViewProps) {
                   Start Over (Upload New File)
                 </button>
                 <button
-                  onClick={executeRoast}
+                  onClick={() => executeRoast()}
                   className="px-8 py-4 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 hover:scale-[1.02] active:scale-[0.98] text-white font-bold text-lg flex items-center gap-2 shadow-lg hover:shadow-purple-500/25 transition-all cursor-pointer"
                 >
                   {error && error.startsWith("AI Analysis Error:") ? "Retry Roast 🔥" : "Apply High Temperature Roast"}
